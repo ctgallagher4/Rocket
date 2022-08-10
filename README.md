@@ -1,5 +1,5 @@
 # Rocket
-Another asteroids clone in python from scratch... This repository is a work in progress. So far, I have the asteroid generation and rocket physics in place. I still need to handle collisions.
+Another asteroids clone in python! This is a work in progress.
 
 # To Run (Linux)
 

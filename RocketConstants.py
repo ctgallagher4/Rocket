@@ -9,3 +9,5 @@ display_height = 1200
 R_CON = (2 * np.pi) / 360
 ASTEROID_MIN_SIZE = 50
 ASTEROID_MAX_SIZE = 100
+
+SMALL_SIZE = 20

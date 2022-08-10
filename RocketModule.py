@@ -4,8 +4,26 @@ from RocketConstants import *
 
 class Game:
 
-    @staticmethod
-    def checkCollision(asteroidSystem, missileSystem, rocket):
+    def __init__(self):
+        pygame.init()
+        self.SURFACE = pygame.display.set_mode((display_width,display_height))
+        pygame.display.set_caption('Asteroids...')
+        self.clock = pygame.time.Clock()
+        self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
+        self.fontDuring = pygame.font.SysFont('timesnewroman', 100)
+        self.score = 0
+
+    def updateScore(self, item1, item2):
+        if item1.RADIUS > SMALL_SIZE:
+            self.score += 100
+        else:
+            self.score += 50
+        if item2.RADIUS > SMALL_SIZE:
+            self.score += 100
+        else:
+            self.score += 50
+
+    def checkCollision(self, asteroidSystem, missileSystem, rocket):
 
         masterSystem = []
 
@@ -22,49 +40,74 @@ class Game:
                         if rocket == item1 or rocket == item2:
                             return True
                         else:
+                            
+                            self.updateScore(item1, item2)
+
                             asteroidSystem.delete(item1)
                             asteroidSystem.delete(item2)
                             missileSystem.delete(item1)
                             missileSystem.delete(item2)
 
-        
         return False
 
-    @staticmethod
-    def run():
-        
-        pygame.init()
-        SURFACE = pygame.display.set_mode((display_width,display_height))
-        pygame.display.set_caption('Asteroids...')
-        clock = pygame.time.Clock()
+    def displayEnd(self):
+        pygame.time.wait(1000)
+        self.SURFACE.fill(BLACK)
+        pygame.display.flip()
+        wait = True
+        while wait:
+            wait = not self.eventListener()
+            score = self.fontEnd.render(str(self.score), False, WHITE, BLACK)
+            self.SURFACE.blit(score, (display_width/2-100, display_height/2-100))
+            pygame.display.flip()
 
-            #sprite initialization
+
+
+
+    def eventListener(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit() # quit the screen
+                return True
+        else:
+            return False
+
+    def displayScore(self):
+        score = self.fontDuring.render(str(self.score), False, WHITE)
+        self.SURFACE.blit(score, (100,100))
+
+
+    
+    def run(self):
+
+        #sprite initialization
         missileSystem = MissileSystem()
-        rocket = Rocket(800, 600, missileSystem, SURFACE)
-        asteroidSystem = AsteroidSystem(SURFACE)
+        rocket = Rocket(800, 600, missileSystem, self.SURFACE)
+        asteroidSystem = AsteroidSystem(self.SURFACE)
     
         count = 0
         gameOn = True
         while gameOn:
         
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit() # quit the screen
-                    gameOn = False
+            gameOn = not self.eventListener()
 
-            SURFACE.fill(BLACK)
+            self.SURFACE.fill(BLACK)
 
-            rocket.update(count, SURFACE)
+            rocket.update(count, self.SURFACE)
             missileSystem.update()
             asteroidSystem.update()
 
 
-            if Game.checkCollision(asteroidSystem, missileSystem, rocket):
+            if self.checkCollision(asteroidSystem, missileSystem, rocket):
                 gameOn = False
 
-            clock.tick(30)
-            pygame.display.update()
+            self.displayScore()
+
+            self.clock.tick(30)
+            pygame.display.flip()
             count += 1
+        
+        self.displayEnd()
 
 
 class CircleObject:
@@ -88,7 +131,7 @@ class AsteroidSystem(CircleObject):
             i.draw()
 
     def update(self):
-        if len(self.system) < 5:
+        if len(self.system) < 20:
             
             listo = []
 
@@ -111,8 +154,8 @@ class AsteroidSystem(CircleObject):
 
             choice = np.random.choice(range(0,len(listo)))
 
-            xSpeed = np.random.randint(-1 * MAX_SPEED, MAX_SPEED/1.5)
-            ySpeed = np.random.randint(-1 * MAX_SPEED, MAX_SPEED/1.5)
+            xSpeed = np.random.randint(-1 * MAX_SPEED/1.5, MAX_SPEED/1.5)
+            ySpeed = np.random.randint(-1 * MAX_SPEED/1.5, MAX_SPEED/1.5)
 
             self.system.append(Asteroid(*listo[choice], xSpeed, ySpeed, self.SURFACE))
 

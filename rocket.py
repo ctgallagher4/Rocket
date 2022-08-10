@@ -3,7 +3,8 @@ import pygame
 from RocketModule import *
 
 def main():
-    Game.run()
+    game = Game()
+    game.run()
     
 if __name__ == '__main__':
     main()
