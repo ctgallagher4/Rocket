@@ -8,4 +8,3 @@ $ git clone https://github.com/ctgallagher4/Rocket
 $ cd Rocket
 
 $ python3 rocket.py
-
