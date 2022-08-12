@@ -1,6 +1,6 @@
 import numpy as np
 import pygame
-from RocketModule import *
+from rocketmodule import Game
 
 def main():
     game = Game()

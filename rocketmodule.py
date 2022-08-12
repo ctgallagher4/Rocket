@@ -1,31 +1,32 @@
 import pygame
 import numpy as np
-from RocketConstants import *
+from rocketconstants import *
 
 class Game:
 
     def __init__(self):
         pygame.init()
-        self.SURFACE = pygame.display.set_mode((display_width,display_height))
+        self.SURFACE = pygame.display.set_mode((DISPLAY_WIDTH,DISPLAY_HEIGHT))
         pygame.display.set_caption('Asteroids...')
         self.clock = pygame.time.Clock()
         self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
         self.fontDuring = pygame.font.SysFont('timesnewroman', 100)
 
     def updateScore(self, item1, item2):
+        '''A helper method for checkCollision which updates the score'''
         if type(item1) == Missile:
             self.score += item2.RADIUS
         elif type(item2) == Missile:
             self.score += item1.RADIUS
 
 
-    def checkCollision(self, asteroidSystem, missileSystem, rocket):
+    def checkCollision(self):
 
         masterSystem = []
 
-        masterSystem.extend(asteroidSystem.system)
-        masterSystem.extend(missileSystem.system)
-        masterSystem.append(rocket)
+        masterSystem.extend(self.asteroidSystem.system)
+        masterSystem.extend(self.missileSystem.system)
+        masterSystem.append(self.rocket)
 
         for item1 in masterSystem:
             for item2 in masterSystem:
@@ -35,19 +36,18 @@ class Game:
                             (item1.x - item2.x) ** 2 + (item1.y - item2.y) ** 2
                         )
                     if dist_actual <=  min_dist:
-                        if rocket == item1 or rocket == item2:
+                        if self.rocket == item1 or self.rocket == item2:
                             return True
                         else:
-                            
                             self.updateScore(item1, item2)
-                            asteroidSystem.delete(item1)
-                            asteroidSystem.delete(item2)
-                            missileSystem.delete(item1)
-                            missileSystem.delete(item2)
-
+                            self.asteroidSystem.delete(item1)
+                            self.asteroidSystem.delete(item2)
+                            self.missileSystem.delete(item1)
+                            self.missileSystem.delete(item2)
         return False
 
     def displayEnd(self):
+        '''A method to display the end of Game Screen'''
         pygame.time.wait(1000)
         self.SURFACE.fill(BLACK)
         pygame.display.flip()
@@ -59,11 +59,11 @@ class Game:
                                                 WHITE, BLACK)
             playAgain = self.fontDuring.render("Press spacebar to play again:",
                                                 False, WHITE, BLACK)
-            self.SURFACE.blit(scoreMessage, (display_width/2-900,
-                                                display_height/2-500))
-            self.SURFACE.blit(score, (display_width/2-100, display_height/2-100))
-            self.SURFACE.blit(playAgain, (display_width/2 - 500, 
-                                                display_height/2 + 300))
+            self.SURFACE.blit(scoreMessage, (DISPLAY_WIDTH/2-900,
+                                                DISPLAY_HEIGHT/2-500))
+            self.SURFACE.blit(score, (DISPLAY_WIDTH/2-100, DISPLAY_HEIGHT/2-100))
+            self.SURFACE.blit(playAgain, (DISPLAY_WIDTH/2 - 500, 
+                                                DISPLAY_HEIGHT/2 + 300))
             
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE] == 1:
@@ -72,6 +72,7 @@ class Game:
             pygame.display.flip()
 
     def eventListener(self):
+        '''A method to listen for events, specifically quit'''
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -80,23 +81,25 @@ class Game:
             return False
 
     def displayScore(self):
+        '''A method to display the score to the screen'''
         score = self.fontDuring.render(str(self.score), False, WHITE)
         self.SURFACE.blit(score, (100,100))
 
 
     def setup(self):
+        '''A method to setup the game sprites'''
         self.missileSystem = MissileSystem()
         self.rocket = Rocket(800, 600, self.missileSystem, self.SURFACE)
         self.asteroidSystem = AsteroidSystem(self.SURFACE)
         self.score = 0
 
     def reset(self):
+        '''A method to reset the game sprites'''
         self.setup()
         self.asteroidSystem.system = []
 
     def run(self):
-
-        #sprite initialization
+        '''A method to run the game'''
         self.setup()
     
         count = 0
@@ -112,8 +115,7 @@ class Game:
             self.asteroidSystem.update()
 
 
-            if self.checkCollision(self.asteroidSystem, 
-                                            self.missileSystem, self.rocket):
+            if self.checkCollision():
                 self.displayEnd()
 
             self.displayScore()
@@ -123,7 +125,7 @@ class Game:
             count += 1
 
 class CircleObject:
-
+    '''A base class for every sprite to inherit from'''
     def __init__(self, x, y):
 
         self.x = x
@@ -132,35 +134,38 @@ class CircleObject:
         self.yVel = 0
 
 class AsteroidSystem(CircleObject):
-
+    '''A class for handling sstems of asteroids'''
     system = []
 
     def __init__(self, SURFACE):
+        '''A method to initialize the AsteroidSystem Class'''
         self.SURFACE = SURFACE
 
     def draw(self):
-        for i in self.system:
-            i.draw()
+        '''A method to draw the asteroids contained in the system'''
+        for asteroid in self.system:
+            asteroid.draw()
 
     def update(self):
+        '''A method to update the asteroid system'''
         if len(self.system) < 20:
             
             listo = []
             #topstart
-            xStart = np.random.randint(0, display_width)
+            xStart = np.random.randint(0, DISPLAY_WIDTH)
             yStart = 0
             listo.append((xStart, yStart))
             #bottomstart
-            xStart = np.random.randint(0, display_width)
-            yStart = display_height
+            xStart = np.random.randint(0, DISPLAY_WIDTH)
+            yStart = DISPLAY_HEIGHT
             listo.append((xStart, yStart))
             #leftstart
             xStart = 0
-            yStart = np.random.randint(0, display_height)
+            yStart = np.random.randint(0, DISPLAY_HEIGHT)
             listo.append((xStart, yStart))
             #rightstart
-            xStart = display_width
-            yStart = np.random.randint(0, display_height)
+            xStart = DISPLAY_WIDTH
+            yStart = np.random.randint(0, DISPLAY_HEIGHT)
             listo.append((xStart, yStart))
 
             choice = np.random.choice(range(0,len(listo)))
@@ -176,6 +181,7 @@ class AsteroidSystem(CircleObject):
         self.draw()
 
     def delete(self, item):
+        '''A method to delete an asteroid from the system'''
         if item in self.system:
 
             R = item.RADIUS
@@ -203,26 +209,10 @@ class AsteroidSystem(CircleObject):
 
 class Asteroid(CircleObject):
 
-    def generatePoints(self):
+    '''A class for working with asteroid objects'''
 
-        np.random.seed(self.SEED)
-
-        x = self.x
-        y = self.y
-        rad = self.RADIUS
-        thetas = np.linspace(0 , 2 * np.pi , NUMBER_OF_POINTS)
-        xRands = [-1 * np.random.randint(0, rad/JAG) for i in range(len(thetas))]
-        yRands = [-1 * np.random.randint(0, rad/JAG) for i in range(len(thetas))]
-        xs = (self.RADIUS * np.cos(thetas)) + x
-        ys = (self.RADIUS * np.sin(thetas)) + y
-        xs += xRands
-        ys += yRands
-
-        points = zip(xs,ys)
-
-        return list(points)
-        
     def __init__(self, x, y, xVel, yVel, SURFACE, radius=None):
+        '''A method to initialize an asteroid class'''
         super().__init__(x, y)
         self.xVel = xVel
         self.yVel = yVel
@@ -234,13 +224,30 @@ class Asteroid(CircleObject):
             self.RADIUS = radius
         self.points = self.generatePoints()
 
+    def generatePoints(self):
+        '''Dynamically generates all of the points to draw for a given asteroid'''
+        np.random.seed(self.SEED)
+        x = self.x
+        y = self.y
+        rad = self.RADIUS
+        thetas = np.linspace(0 , 2 * np.pi , NUMBER_OF_POINTS)
+        xRands = [-1 * np.random.randint(0, rad/JAG) for i in range(len(thetas))]
+        yRands = [-1 * np.random.randint(0, rad/JAG) for i in range(len(thetas))]
+        xs = (self.RADIUS * np.cos(thetas)) + x
+        ys = (self.RADIUS * np.sin(thetas)) + y
+        xs += xRands
+        ys += yRands
+        points = zip(xs,ys)
+        return list(points)
+
+
     def draw(self):
-        
+        '''A method to draw an asteroid'''
         pygame.draw.polygon(self.SURFACE, WHITE, self.points, 2)
 
 
     def update(self):
-
+        '''A method to update an asteroid on screen'''
         self.draw()
 
         self.x += self.xVel
@@ -248,14 +255,15 @@ class Asteroid(CircleObject):
 
         self.points = self.generatePoints()
 
-        self.x = self.x % (display_width)
-        self.y = self.y % (display_height)
+        self.x = self.x % (DISPLAY_WIDTH)
+        self.y = self.y % (DISPLAY_HEIGHT)
 
 class Missile(CircleObject):
-
+    '''A class to work with missiles'''
     RADIUS = 1
 
     def __init__(self, x, y, xVel, yVel, tip, SURFACE):
+        '''A class to initialize the missile object'''
         super().__init__(x, y)
         self.xVel = xVel
         self.yVel = yVel
@@ -263,6 +271,7 @@ class Missile(CircleObject):
         self.SURFACE = SURFACE
 
     def draw(self):
+        '''A class to draw a missile'''
         SURFACE = self.SURFACE
         topLeftLoc = (self.x + self.RADIUS * np.cos((self.tip + 30) * R_CON), 
                   self.y + self.RADIUS * np.sin((self.tip + 30) * R_CON))
@@ -276,7 +285,7 @@ class Missile(CircleObject):
                             rightLoc])
 
     def update(self):
-
+        '''A method to update a missile on the screen'''
         self.draw()
 
         self.x += self.xVel
@@ -284,26 +293,29 @@ class Missile(CircleObject):
 
 class MissileSystem:
 
+    '''A class for working with multiple missiles'''
+
     system = []
 
     def update(self):
-
+        '''A method to update the MissileSystem'''
         missiles = []
         for missile in self.system:
             
             missile.update()
 
-            if missile.x < display_width and missile.x > 0:
+            if missile.x < DISPLAY_WIDTH and missile.x > 0:
                 missiles.append(missile)
 
         self.system = missiles
 
     def delete(self, item):
+        '''A method to delete a missile'''
         if item in self.system:
             self.system.remove(item)
 
 class Rocket(CircleObject):
-
+    '''A class for working with the player's rocket'''
     RADIUS = 25
     tip = 0 # degrees
 
@@ -339,6 +351,7 @@ class Rocket(CircleObject):
             pygame.draw.polygon(SURFACE, WHITE, newList)
 
     def checkSpeed(self):
+        '''A method to insure the speed of the rocket does not exceed maxes'''
         if self.xVel > MAX_SPEED:
             self.xVel = MAX_SPEED
         if self.xVel < -1 * MAX_SPEED:
@@ -349,7 +362,7 @@ class Rocket(CircleObject):
             self.yVel = -1 * MAX_SPEED
 
     def checkLaunch(self, count):
-
+        '''A method to check if the spacebar has launched a missile'''
         SURFACE = self.SURFACE
 
         keys = pygame.key.get_pressed()
@@ -366,11 +379,11 @@ class Rocket(CircleObject):
 
 
     def update(self, count, SURFACE):
-
+        '''A method to update the rocket objet on screen'''
         keys = pygame.key.get_pressed()
 
-        self.x = self.x % display_width
-        self.y = self.y % display_height
+        self.x = self.x % DISPLAY_WIDTH
+        self.y = self.y % DISPLAY_HEIGHT
         
         self.tip -= (keys[pygame.K_a] - keys[pygame.K_d]) * 8
         tip = self.tip
