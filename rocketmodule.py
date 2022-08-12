@@ -21,7 +21,7 @@ class Game:
 
 
     def checkCollision(self):
-
+        '''A method to check for collisions between sprites'''
         masterSystem = []
 
         masterSystem.extend(self.asteroidSystem.system)
