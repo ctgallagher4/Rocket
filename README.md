@@ -8,3 +8,10 @@ $ git clone https://github.com/ctgallagher4/Rocket
 $ cd Rocket
 
 $ python3 rocket.py
+
+# Controls
+
+w - fire the rocket engine
+s - use RCS to pivot counter-clockwise
+d - use RCS to pivot clockwise
+spacebar - shoot missiles
