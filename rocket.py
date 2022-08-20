@@ -1,5 +1,3 @@
-import numpy as np
-import pygame
 from rocketmodule import Game
 
 def main():

@@ -1,12 +1,17 @@
 import pygame
 import numpy as np
 from rocketconstants import *
+import asyncio
+import time
 
 class Game:
+    pygame.init()
+    info = pygame.display.Info()
+    HEIGHT = info.current_h/1.5
+    WIDTH = info.current_w/1.5
 
     def __init__(self):
-        pygame.init()
-        self.SURFACE = pygame.display.set_mode((DISPLAY_WIDTH,DISPLAY_HEIGHT))
+        self.SURFACE = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         pygame.display.set_caption('Asteroids...')
         self.clock = pygame.time.Clock()
         self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
@@ -59,11 +64,11 @@ class Game:
                                                 WHITE, BLACK)
             playAgain = self.fontDuring.render("Press spacebar to play again:",
                                                 False, WHITE, BLACK)
-            self.SURFACE.blit(scoreMessage, (DISPLAY_WIDTH/2-900,
-                                                DISPLAY_HEIGHT/2-500))
-            self.SURFACE.blit(score, (DISPLAY_WIDTH/2-100, DISPLAY_HEIGHT/2-100))
-            self.SURFACE.blit(playAgain, (DISPLAY_WIDTH/2 - 500, 
-                                                DISPLAY_HEIGHT/2 + 300))
+            self.SURFACE.blit(scoreMessage, (self.info.current_w/2-900,
+                                                self.info.current_h/2-500))
+            self.SURFACE.blit(score, (self.info.current_w/2-100, self.info.current_h/2-100))
+            self.SURFACE.blit(playAgain, (self.info.current_w/2 - 500, 
+                                                self.info.current_h/2 + 300))
             
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE] == 1:
@@ -120,7 +125,7 @@ class Game:
 
             self.displayScore()
 
-            self.clock.tick(30)
+            self.clock.tick(60)
             pygame.display.flip()
             count += 1
 
@@ -135,10 +140,10 @@ class CircleObject:
 
 class AsteroidSystem(CircleObject):
     '''A class for handling sstems of asteroids'''
-    system = []
 
     def __init__(self, SURFACE):
         '''A method to initialize the AsteroidSystem Class'''
+        self.system = []
         self.SURFACE = SURFACE
 
     def draw(self):
@@ -152,20 +157,20 @@ class AsteroidSystem(CircleObject):
             
             listo = []
             #topstart
-            xStart = np.random.randint(0, DISPLAY_WIDTH)
+            xStart = np.random.randint(0, Game.WIDTH)
             yStart = 0
             listo.append((xStart, yStart))
             #bottomstart
-            xStart = np.random.randint(0, DISPLAY_WIDTH)
-            yStart = DISPLAY_HEIGHT
+            xStart = np.random.randint(0, Game.WIDTH)
+            yStart = Game.HEIGHT
             listo.append((xStart, yStart))
             #leftstart
             xStart = 0
-            yStart = np.random.randint(0, DISPLAY_HEIGHT)
+            yStart = np.random.randint(0, Game.HEIGHT)
             listo.append((xStart, yStart))
             #rightstart
-            xStart = DISPLAY_WIDTH
-            yStart = np.random.randint(0, DISPLAY_HEIGHT)
+            xStart = Game.WIDTH
+            yStart = np.random.randint(0, Game.HEIGHT)
             listo.append((xStart, yStart))
 
             choice = np.random.choice(range(0,len(listo)))
@@ -190,10 +195,10 @@ class AsteroidSystem(CircleObject):
 
                 S = self.SURFACE
 
-                a1Speed = (np.random.randint(0,5), np.random.randint(0,5))
-                a2Speed = (np.random.randint(0,5), -1 * np.random.randint(0,5))
-                a3Speed = (-1 * np.random.randint(0,5), np.random.randint(0,5))
-                a4Speed = (-1 * np.random.randint(0,5), -1 * np.random.randint(0,5))
+                a1Speed = (np.random.randint(0,MAX_SPEED/1.5), np.random.randint(0,MAX_SPEED/1.5))
+                a2Speed = (np.random.randint(0,MAX_SPEED/1.5), -1 * np.random.randint(0,MAX_SPEED/1.5))
+                a3Speed = (-1 * np.random.randint(0,MAX_SPEED/1.5), np.random.randint(0,MAX_SPEED/1.5))
+                a4Speed = (-1 * np.random.randint(0,MAX_SPEED/1.5), -1 * np.random.randint(0,MAX_SPEED/1.5))
                 a1Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
                 a2Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
                 a3Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
@@ -255,8 +260,8 @@ class Asteroid(CircleObject):
 
         self.points = self.generatePoints()
 
-        self.x = self.x % (DISPLAY_WIDTH)
-        self.y = self.y % (DISPLAY_HEIGHT)
+        self.x = self.x % (Game.WIDTH)
+        self.y = self.y % (Game.HEIGHT)
 
 class Missile(CircleObject):
     '''A class to work with missiles'''
@@ -304,7 +309,7 @@ class MissileSystem:
             
             missile.update()
 
-            if missile.x < DISPLAY_WIDTH and missile.x > 0:
+            if missile.x < Game.WIDTH and missile.x > 0:
                 missiles.append(missile)
 
         self.system = missiles
@@ -361,13 +366,13 @@ class Rocket(CircleObject):
         if self.yVel < -1 * MAX_SPEED:
             self.yVel = -1 * MAX_SPEED
 
-    def checkLaunch(self, count):
+    async def checkLaunch(self):
         '''A method to check if the spacebar has launched a missile'''
         SURFACE = self.SURFACE
 
         keys = pygame.key.get_pressed()
     
-        if keys[pygame.K_SPACE] == 1 and count % 7 == 0:
+        if keys[pygame.K_SPACE] == 1: #and count % 14 == 0:
             tipLoc = (self.x + self.RADIUS * np.cos(self.tip * R_CON), 
                       self.y + self.RADIUS * np.sin(self.tip * R_CON))
             missXVel = np.cos(self.tip * R_CON)/self.RADIUS *1000
@@ -377,15 +382,24 @@ class Rocket(CircleObject):
             
             self.missileSystem.system.append(newMissile)
 
+            self.sleep()
+
+    async def sleep(self):
+        await asyncio.sleep(100)
+
+            
+
+
+
 
     def update(self, count, SURFACE):
         '''A method to update the rocket objet on screen'''
         keys = pygame.key.get_pressed()
 
-        self.x = self.x % DISPLAY_WIDTH
-        self.y = self.y % DISPLAY_HEIGHT
+        self.x = self.x % Game.WIDTH
+        self.y = self.y % Game.HEIGHT
         
-        self.tip -= (keys[pygame.K_a] - keys[pygame.K_d]) * 8
+        self.tip -= (keys[pygame.K_a] - keys[pygame.K_d]) * ROT_SPEED
         tip = self.tip
         self.xVel += np.cos(tip * R_CON) * keys[pygame.K_w]/self.RADIUS * ACC_FACTOR
         self.yVel += np.sin(tip * R_CON) * keys[pygame.K_w]/self.RADIUS * ACC_FACTOR
@@ -395,6 +409,6 @@ class Rocket(CircleObject):
         self.x += self.xVel 
         self.y += self.yVel
 
-        self.checkLaunch(count)
+        asyncio.run(self.checkLaunch())
 
         self.draw(count, SURFACE)
