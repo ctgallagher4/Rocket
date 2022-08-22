@@ -76,7 +76,7 @@ class Game:
             if keys[pygame.K_SPACE] == 1:
                 wait = False
                 self.score = 0
-                self.lives = 3
+                self.lives = 4 # reset will subtract 1
                 self.reset()
             pygame.display.flip()
 
