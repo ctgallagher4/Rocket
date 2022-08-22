@@ -1,10 +1,11 @@
 import pygame
 import numpy as np
 from rocketconstants import *
-import asyncio
-import time
 
 class Game:
+
+    '''A class to handle the Game'''
+    
     pygame.init()
     info = pygame.display.Info()
     HEIGHT = info.current_h/1.5
@@ -16,6 +17,8 @@ class Game:
         self.clock = pygame.time.Clock()
         self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
         self.fontDuring = pygame.font.SysFont('timesnewroman', 100)
+        self.lives = 3
+        self.score = 0
 
     def updateScore(self, item1, item2):
         '''A helper method for checkCollision which updates the score'''
@@ -62,18 +65,19 @@ class Game:
             score = self.fontEnd.render(str(self.score), False, WHITE, BLACK)
             scoreMessage = self.fontEnd.render("Your Score Is: ", False, 
                                                 WHITE, BLACK)
-            playAgain = self.fontDuring.render("Press spacebar to play again:",
+            playAgain = self.fontDuring.render("Press spacebar to play again.",
                                                 False, WHITE, BLACK)
-            self.SURFACE.blit(scoreMessage, (self.info.current_w/2-900,
-                                                self.info.current_h/2-500))
-            self.SURFACE.blit(score, (self.info.current_w/2-100, self.info.current_h/2-100))
-            self.SURFACE.blit(playAgain, (self.info.current_w/2 - 500, 
-                                                self.info.current_h/2 + 300))
-            
+            self.SURFACE.blit(scoreMessage, (self.info.current_w/40,
+                                            self.info.current_h/40))
+            self.SURFACE.blit(score, (self.info.current_w/3, self.info.current_h/5))
+            self.SURFACE.blit(playAgain, (self.info.current_w/10, 
+                                                self.info.current_h/2))
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE] == 1:
-                self.reset()
                 wait = False
+                self.score = 0
+                self.lives = 3
+                self.reset()
             pygame.display.flip()
 
     def eventListener(self):
@@ -90,27 +94,43 @@ class Game:
         score = self.fontDuring.render(str(self.score), False, WHITE)
         self.SURFACE.blit(score, (100,100))
 
-
     def setup(self):
         '''A method to setup the game sprites'''
         self.missileSystem = MissileSystem()
-        self.rocket = Rocket(800, 600, self.missileSystem, self.SURFACE)
+        self.rocket = Rocket(800, 600, self.missileSystem, self.SURFACE, 25)
         self.asteroidSystem = AsteroidSystem(self.SURFACE)
-        self.score = 0
 
     def reset(self):
         '''A method to reset the game sprites'''
         self.setup()
+        self.lives -= 1
         self.asteroidSystem.system = []
 
-    def run(self):
-        '''A method to run the game'''
-        self.setup()
+    def displayLives(self):
+        '''A method to display lives in the top right corner.'''
+        x = Game.WIDTH*.85
+        y = 200
+        for i in range(self.lives):
+            rocket = Rocket(x, y, MissileSystem(), self.SURFACE, 50)
+            rocket.tip = 270
+            rocket.draw(2, self.SURFACE)
+            x += 75
     
+    def pause(self):
+        '''A method to pause the game'''
+        pygame.time.wait(1000)
+        while not self.eventListener():
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_SPACE] == 1:
+                self.setup()
+                self.lives -= 1
+                break
+
+    def run(self):
+        self.setup()
         count = 0
         gameOn = True
         while gameOn:
-        
             gameOn = not self.eventListener()
 
             self.SURFACE.fill(BLACK)
@@ -119,18 +139,23 @@ class Game:
             self.missileSystem.update()
             self.asteroidSystem.update()
 
-
             if self.checkCollision():
-                self.displayEnd()
+                if self.lives == 0:
+                    self.displayEnd()
+                else:
+                    self.pause()
 
             self.displayScore()
+            self.displayLives()
 
             self.clock.tick(60)
             pygame.display.flip()
-            count += 1
+            count += 1 % 1000
 
 class CircleObject:
+
     '''A base class for every sprite to inherit from'''
+
     def __init__(self, x, y):
 
         self.x = x
@@ -139,6 +164,7 @@ class CircleObject:
         self.yVel = 0
 
 class AsteroidSystem(CircleObject):
+
     '''A class for handling sstems of asteroids'''
 
     def __init__(self, SURFACE):
@@ -151,33 +177,34 @@ class AsteroidSystem(CircleObject):
         for asteroid in self.system:
             asteroid.draw()
 
+    def generateXYStart(self):
+        listo = []
+        #topstart
+        xStart = np.random.randint(0, Game.WIDTH)
+        yStart = 0
+        listo.append((xStart, yStart))
+        #bottomstart
+        xStart = np.random.randint(0, Game.WIDTH)
+        yStart = Game.HEIGHT
+        listo.append((xStart, yStart))
+        #leftstart
+        xStart = 0
+        yStart = np.random.randint(0, Game.HEIGHT)
+        listo.append((xStart, yStart))
+        #rightstart
+        xStart = Game.WIDTH
+        yStart = np.random.randint(0, Game.HEIGHT)
+        listo.append((xStart, yStart))
+        return listo
+
     def update(self):
         '''A method to update the asteroid system'''
         if len(self.system) < 20:
             
-            listo = []
-            #topstart
-            xStart = np.random.randint(0, Game.WIDTH)
-            yStart = 0
-            listo.append((xStart, yStart))
-            #bottomstart
-            xStart = np.random.randint(0, Game.WIDTH)
-            yStart = Game.HEIGHT
-            listo.append((xStart, yStart))
-            #leftstart
-            xStart = 0
-            yStart = np.random.randint(0, Game.HEIGHT)
-            listo.append((xStart, yStart))
-            #rightstart
-            xStart = Game.WIDTH
-            yStart = np.random.randint(0, Game.HEIGHT)
-            listo.append((xStart, yStart))
-
+            listo = self.generateXYStart()
             choice = np.random.choice(range(0,len(listo)))
-
-            xSpeed = np.random.randint(-1 * MAX_SPEED/1.5, MAX_SPEED/1.5)
-            ySpeed = np.random.randint(-1 * MAX_SPEED/1.5, MAX_SPEED/1.5)
-
+            xSpeed = np.random.randint(-1 * MAX_SPEED/1.1, MAX_SPEED/1.1)
+            ySpeed = np.random.randint(-1 * MAX_SPEED/1.1, MAX_SPEED/1.1)
             self.system.append(Asteroid(*listo[choice], xSpeed, ySpeed, self.SURFACE))
 
         for asteroid in self.system:
@@ -195,10 +222,10 @@ class AsteroidSystem(CircleObject):
 
                 S = self.SURFACE
 
-                a1Speed = (np.random.randint(0,MAX_SPEED/1.5), np.random.randint(0,MAX_SPEED/1.5))
-                a2Speed = (np.random.randint(0,MAX_SPEED/1.5), -1 * np.random.randint(0,MAX_SPEED/1.5))
-                a3Speed = (-1 * np.random.randint(0,MAX_SPEED/1.5), np.random.randint(0,MAX_SPEED/1.5))
-                a4Speed = (-1 * np.random.randint(0,MAX_SPEED/1.5), -1 * np.random.randint(0,MAX_SPEED/1.5))
+                a1Speed = (np.random.randint(0,MAX_SPEED/1.1), np.random.randint(0,MAX_SPEED/1.1))
+                a2Speed = (np.random.randint(0,MAX_SPEED/1.1), -1 * np.random.randint(0,MAX_SPEED/1.1))
+                a3Speed = (-1 * np.random.randint(0,MAX_SPEED/1.1), np.random.randint(0,MAX_SPEED/1.1))
+                a4Speed = (-1 * np.random.randint(0,MAX_SPEED/1.1), -1 * np.random.randint(0,MAX_SPEED/1.1))
                 a1Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
                 a2Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
                 a3Size = np.random.randint(MIN_SMALL_SIZE, MAX_SMALL_SIZE)
@@ -245,11 +272,9 @@ class Asteroid(CircleObject):
         points = zip(xs,ys)
         return list(points)
 
-
     def draw(self):
         '''A method to draw an asteroid'''
         pygame.draw.polygon(self.SURFACE, WHITE, self.points, 2)
-
 
     def update(self):
         '''A method to update an asteroid on screen'''
@@ -310,7 +335,8 @@ class MissileSystem:
             missile.update()
 
             if missile.x < Game.WIDTH and missile.x > 0:
-                missiles.append(missile)
+                if missile.y < Game.HEIGHT and missile.y > 0:
+                    missiles.append(missile)
 
         self.system = missiles
 
@@ -321,13 +347,16 @@ class MissileSystem:
 
 class Rocket(CircleObject):
     '''A class for working with the player's rocket'''
-    RADIUS = 25
-    tip = 0 # degrees
 
-    def __init__(self, x, y, missileSystem, SURFACE):
+    def __init__(self, x, y, missileSystem, SURFACE, radius):
         super().__init__(x, y)
         self.missileSystem = missileSystem
         self.SURFACE = SURFACE
+        self.tip = 0
+        self.RADIUS = radius
+        self.time_ = 0
+        self.prev_time = 0
+        self.threshold = 0
 
     def getTipLoc(self):
         return (self.x + self.RADIUS * np.cos(self.tip * R_CON), 
@@ -366,31 +395,20 @@ class Rocket(CircleObject):
         if self.yVel < -1 * MAX_SPEED:
             self.yVel = -1 * MAX_SPEED
 
-    async def checkLaunch(self):
+    def checkLaunch(self, count):
         '''A method to check if the spacebar has launched a missile'''
         SURFACE = self.SURFACE
-
         keys = pygame.key.get_pressed()
-    
-        if keys[pygame.K_SPACE] == 1: #and count % 14 == 0:
+        self.currTime = pygame.time.get_ticks()
+        if keys[pygame.K_SPACE] == 1 and self.currTime > self.threshold:
+            self.threshold = self.currTime + 200
             tipLoc = (self.x + self.RADIUS * np.cos(self.tip * R_CON), 
                       self.y + self.RADIUS * np.sin(self.tip * R_CON))
             missXVel = np.cos(self.tip * R_CON)/self.RADIUS *1000
             missYVel = np.sin(self.tip * R_CON)/self.RADIUS *1000
             
             newMissile = Missile(tipLoc[0], tipLoc[1], missXVel, missYVel, self.tip, SURFACE)
-            
             self.missileSystem.system.append(newMissile)
-
-            self.sleep()
-
-    async def sleep(self):
-        await asyncio.sleep(100)
-
-            
-
-
-
 
     def update(self, count, SURFACE):
         '''A method to update the rocket objet on screen'''
@@ -409,6 +427,6 @@ class Rocket(CircleObject):
         self.x += self.xVel 
         self.y += self.yVel
 
-        asyncio.run(self.checkLaunch())
+        self.checkLaunch(count)
 
         self.draw(count, SURFACE)
