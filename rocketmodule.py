@@ -13,7 +13,7 @@ class Game:
 
     def __init__(self):
         self.SURFACE = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption('Asteroids...')
+        pygame.display.set_caption('Rocket')
         self.clock = pygame.time.Clock()
         self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
         self.fontDuring = pygame.font.SysFont('timesnewroman', 100)
@@ -35,6 +35,7 @@ class Game:
         masterSystem.extend(self.asteroidSystem.system)
         masterSystem.extend(self.missileSystem.system)
         masterSystem.append(self.rocket)
+        masterSystem.append(self.UFO)
 
         for item1 in masterSystem:
             for item2 in masterSystem:
@@ -46,6 +47,27 @@ class Game:
                     if dist_actual <=  min_dist:
                         if self.rocket == item1 or self.rocket == item2:
                             return True
+                        elif self.UFO == item1 or self.UFO == item2:
+                            if self.UFO == item1 and type(item2) == Asteroid:
+                                self.asteroidSystem.delete(item2)
+                            elif self.UFO == item2 and type(item1) == Asteroid:
+                                self.asteroidSystem.delete(item1)
+                            elif self.UFO == item1 and type(item2) == Missile:
+                                if type(item2.origin) == Rocket:
+                                    self.missileSystem.delete(item2)
+                                    self.UFO.lives -= 1
+                                    if self.UFO.lives == 0:
+                                        self
+                                        self.UFO.x = -3000
+                                        self.UFO.lives = self.UFO.deathCount * 5
+                            elif self.UFO == item2 and type(item1) == Missile:
+                                if type(item1.origin) == Rocket:
+                                    self.missileSystem.delete(item1)
+                                    self.UFO.lives -= 1
+                                    self.UFO.deathCount += 1
+                                    if self.UFO.lives == 0:
+                                        self.UFO.x = -3000
+                                        self.UFO.lives = self.UFO.deathCount * 3
                         else:
                             self.updateScore(item1, item2)
                             self.asteroidSystem.delete(item1)
@@ -98,6 +120,8 @@ class Game:
         '''A method to setup the game sprites'''
         self.missileSystem = MissileSystem()
         self.rocket = Rocket(800, 600, self.missileSystem, self.SURFACE, 25)
+        self.UFO = UFO(0, 200, self.missileSystem, self.SURFACE, 80, 
+                                self.rocket)
         self.asteroidSystem = AsteroidSystem(self.SURFACE)
 
     def reset(self):
@@ -113,7 +137,7 @@ class Game:
         for i in range(self.lives):
             rocket = Rocket(x, y, MissileSystem(), self.SURFACE, 50)
             rocket.tip = 270
-            rocket.draw(2, self.SURFACE)
+            rocket.draw(2)
             x += 75
     
     def pause(self):
@@ -135,7 +159,8 @@ class Game:
 
             self.SURFACE.fill(BLACK)
 
-            self.rocket.update(count, self.SURFACE)
+            self.UFO.update()
+            self.rocket.update(count)
             self.missileSystem.update()
             self.asteroidSystem.update()
 
@@ -150,7 +175,7 @@ class Game:
 
             self.clock.tick(60)
             pygame.display.flip()
-            count += 1 % 1000
+            count += 1 % 20000
 
 class CircleObject:
 
@@ -292,13 +317,14 @@ class Missile(CircleObject):
     '''A class to work with missiles'''
     RADIUS = 1
 
-    def __init__(self, x, y, xVel, yVel, tip, SURFACE):
+    def __init__(self, x, y, xVel, yVel, tip, SURFACE, origin):
         '''A class to initialize the missile object'''
         super().__init__(x, y)
         self.xVel = xVel
         self.yVel = yVel
         self.tip = tip
         self.SURFACE = SURFACE
+        self.origin = origin
 
     def draw(self):
         '''A class to draw a missile'''
@@ -345,7 +371,47 @@ class MissileSystem:
         if item in self.system:
             self.system.remove(item)
 
+class UFO(CircleObject):
+
+    '''A class for working with UFO's'''
+
+    def __init__(self, x, y, missileSystem, SURFACE, RADIUS, rocket):
+        super().__init__(x, y)
+        self.missileSystem = missileSystem
+        self.SURFACE = SURFACE
+        self.tip = 0
+        self.RADIUS = RADIUS
+        self.lives = 5
+        self.currTime = pygame.time.get_ticks()
+        self.rocket = rocket
+        self.deathCount = 0
+
+    def update(self):
+        if self.x < Game.WIDTH/2 - 10:
+            self.x += 5 
+        #self.x = self.x % Game.WIDTH
+        rocket = self.rocket
+        if (pygame.time.get_ticks() - self.currTime) >= 1000:
+            self.currTime = pygame.time.get_ticks()
+            selfVec = np.array([self.x, self.y])
+            rocketVec = np.array([rocket.x, rocket.y])
+            dist = rocketVec - selfVec
+            nDist = dist / np.linalg.norm(dist) * MAX_SPEED
+            missile = Missile(self.x, self.y, *nDist, 180, self.SURFACE, self)
+            self.missileSystem.system.append(missile)
+
+        self.draw()
+
+    def draw(self):
+        if self.lives > 3:
+            pygame.draw.circle(self.SURFACE, WHITE, (self.x, self.y), self.RADIUS, 1)
+        innerRect = pygame.Rect(self.x-self.RADIUS + 5, self.y, 150, 35)
+        arcRect = pygame.Rect(self.x-28, self.y - 25, 60, 60)
+        pygame.draw.arc(self.SURFACE, WHITE, arcRect, 0, np.pi, 2)
+        pygame.draw.ellipse(self.SURFACE, WHITE, innerRect, 7)
+    
 class Rocket(CircleObject):
+
     '''A class for working with the player's rocket'''
 
     def __init__(self, x, y, missileSystem, SURFACE, radius):
@@ -370,7 +436,7 @@ class Rocket(CircleObject):
         return (self.x + self.RADIUS * np.cos((self.tip + 150) * R_CON), 
                 self.y + self.RADIUS * np.sin((self.tip + 150) * R_CON))
 
-    def draw(self, count, SURFACE):
+    def draw(self, count):
         SURFACE = self.SURFACE
         triangle = [self.getTipLoc(), self.getLeftLoc(), self.getRightLoc()]
         pygame.draw.polygon(SURFACE, WHITE, triangle, 1)
@@ -407,10 +473,11 @@ class Rocket(CircleObject):
             missXVel = np.cos(self.tip * R_CON)/self.RADIUS *1000
             missYVel = np.sin(self.tip * R_CON)/self.RADIUS *1000
             
-            newMissile = Missile(tipLoc[0], tipLoc[1], missXVel, missYVel, self.tip, SURFACE)
+            newMissile = Missile(tipLoc[0], tipLoc[1], missXVel, missYVel, 
+                                    self.tip, SURFACE, self)
             self.missileSystem.system.append(newMissile)
 
-    def update(self, count, SURFACE):
+    def update(self, count):
         '''A method to update the rocket objet on screen'''
         keys = pygame.key.get_pressed()
 
@@ -429,4 +496,4 @@ class Rocket(CircleObject):
 
         self.checkLaunch(count)
 
-        self.draw(count, SURFACE)
+        self.draw(count)
