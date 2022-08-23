@@ -16,6 +16,7 @@ class Game:
         pygame.display.set_caption('Rocket')
         self.clock = pygame.time.Clock()
         self.fontEnd = pygame.font.SysFont('timesnewroman', 300)
+        self.fontLife = pygame.font.SysFont('timesnewroman', 100)
         self.fontDuring = pygame.font.SysFont('timesnewroman', 100)
         self.lives = 3
         self.score = 0
@@ -144,6 +145,10 @@ class Game:
         '''A method to pause the game'''
         pygame.time.wait(1000)
         while not self.eventListener():
+            pause = self.fontLife.render("Press spacebar to continue...", 
+                                            False, WHITE, BLACK)
+            self.SURFACE.blit(pause, (Game.WIDTH/5, Game.HEIGHT/3))
+            pygame.display.flip()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE] == 1:
                 self.setup()
