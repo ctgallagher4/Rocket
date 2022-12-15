@@ -58,7 +58,6 @@ class Game:
                                     self.missileSystem.delete(item2)
                                     self.UFO.lives -= 1
                                     if self.UFO.lives == 0:
-                                        self
                                         self.UFO.x = -3000
                                         self.UFO.lives = self.UFO.deathCount * 5
                             elif self.UFO == item2 and type(item1) == Missile:
@@ -322,7 +321,7 @@ class Missile(CircleObject):
     '''A class to work with missiles'''
     RADIUS = 1
 
-    def __init__(self, x, y, xVel, yVel, tip, SURFACE, origin):
+    def __init__(self, x, y, xVel, yVel, tip, SURFACE, origin, target=None):
         '''A class to initialize the missile object'''
         super().__init__(x, y)
         self.xVel = xVel
@@ -330,6 +329,7 @@ class Missile(CircleObject):
         self.tip = tip
         self.SURFACE = SURFACE
         self.origin = origin
+        self.target = target
 
     def draw(self):
         '''A class to draw a missile'''
@@ -348,9 +348,16 @@ class Missile(CircleObject):
     def update(self):
         '''A method to update a missile on the screen'''
         self.draw()
-
-        self.x += self.xVel
-        self.y += self.yVel
+        if self.target:
+            selfVec = np.array([self.x, self.y])
+            rocketVec = np.array([self.target.x, self.target.y])
+            dist = rocketVec - selfVec
+            nDist = dist / np.linalg.norm(dist) * MAX_SPEED
+            self.x += nDist[0]
+            self.y += nDist[1]
+        else:
+            self.x += self.xVel
+            self.y += self.yVel
 
 class MissileSystem:
 
